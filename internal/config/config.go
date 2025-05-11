@@ -1,23 +1,50 @@
 package config
 
 import (
-	"flag"
-	"os"
+	"fmt"
+	"strings"
+
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 type Config struct {
-	HTTPAddr   string
-	NATSURL    string
-	LogLevel   string
-	MetricsAddr string
+	HTTPAddr    string `mapstructure:"http-addr"`
+	NATSURL     string `mapstructure:"nats-url"`
+	LogLevel    string `mapstructure:"log-level"`
+	MetricsAddr string `mapstructure:"metrics-addr"`
 }
 
 func Load() (*Config, error) {
-	cfg := &Config{}
-	flag.StringVar(&cfg.HTTPAddr, "http-addr", ":3333", "HTTP listen address")
-	flag.StringVar(&cfg.NATSURL,  "nats-url",  os.Getenv("NATS_URL"), "NATS server URL")
-	flag.StringVar(&cfg.LogLevel, "log-level", "info", "Log level")
-	flag.StringVar(&cfg.MetricsAddr, "metrics-addr", ":9090", "Metrics listen address")
-	flag.Parse()
-	return cfg, nil
+	// Optional flag for config file
+	pflag.String("config", "config.yaml", "Path to config file")
+
+	// CLI flags (override everything)
+	pflag.String("nats-url", "", "NATS server URL")
+	pflag.String("log-level", "", "Log level")
+	pflag.String("metrics-addr", "", "Metrics listen address")
+	pflag.String("http-addr", "", "HTTP listen address")
+	pflag.Parse()
+
+	// Bind flags
+	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
+		return nil, err
+	}
+
+	// Support ENV like NATS_URL
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
+
+	// Load from YAML file (if it exists)
+	viper.SetConfigFile(viper.GetString("config"))
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Printf("No config file found, continuing with flags/env: %v\n", err)
+	}
+
+	var cfg Config
+	if err := viper.Unmarshal(&cfg); err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
 }
