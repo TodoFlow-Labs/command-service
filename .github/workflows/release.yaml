@@ -55,11 +55,14 @@ jobs:
           git tag v${{ steps.get_tag.outputs.version }}
           git push origin v${{ steps.get_tag.outputs.version }}
 
-      - name: Build and Push Docker image
+      - name: Build and Push Docker image (multi-arch)
         run: |
-          docker build -t furlingene/command-service:latest -t furlingene/command-service:v${{ steps.get_tag.outputs.version }} .
-          docker push furlingene/command-service:latest
-          docker push furlingene/command-service:v${{ steps.get_tag.outputs.version }}
+          docker buildx create --use --name multiarch-builder
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --push \
+            -t furlingene/command-service:latest \
+            -t furlingene/command-service:v${{ steps.get_tag.outputs.version }} .
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
