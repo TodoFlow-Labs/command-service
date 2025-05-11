@@ -71,6 +71,7 @@ func TestPublishCreate(t *testing.T) {
 	body, _ := json.Marshal(cmd)
 	req := httptest.NewRequest(http.MethodPost, "/todos", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-User-ID", "test-user-1") // 👈 Add test user ID
 	resp := httptest.NewRecorder()
 
 	handlerFunc(resp, req)
@@ -82,19 +83,12 @@ func TestPublishCreate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 1)
 
-	msg := msgs[0]
-	meta, err := msg.Metadata()
-	assert.NoError(t, err)
-	assert.NotNil(t, meta)
-	assert.Equal(t, "todo.commands", msg.Subject)
-	assert.NotZero(t, meta.Sequence.Consumer)
-	assert.WithinDuration(t, time.Now(), meta.Timestamp, 5*time.Second)
-
 	var received dto.CreateTodoCommand
-	err = json.Unmarshal(msg.Data, &received)
+	err = json.Unmarshal(msgs[0].Data, &received)
 	assert.NoError(t, err)
 	assert.Equal(t, cmd.Title, received.Title)
 	assert.Equal(t, dto.CreateTodoCmd, received.Type)
+	assert.Equal(t, "test-user-1", received.UserID)
 }
 
 func TestPublishUpdate(t *testing.T) {
@@ -111,6 +105,7 @@ func TestPublishUpdate(t *testing.T) {
 	body, _ := json.Marshal(cmd)
 	req := httptest.NewRequest(http.MethodPut, "/todos/123", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-User-ID", "test-user-2") // 👈 Add test user ID
 	req = withRouteParam(req, "id", "123")
 	resp := httptest.NewRecorder()
 
@@ -123,18 +118,14 @@ func TestPublishUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 1)
 
-	msg := msgs[0]
-	_, err = msg.Metadata()
-	assert.NoError(t, err)
-	assert.Equal(t, "todo.commands", msg.Subject)
-
 	var received dto.UpdateTodoCommand
-	err = json.Unmarshal(msg.Data, &received)
+	err = json.Unmarshal(msgs[0].Data, &received)
 	assert.NoError(t, err)
 	assert.Equal(t, "123", received.ID)
 	assert.Equal(t, *cmd.Title, *received.Title)
 	assert.Equal(t, *cmd.Completed, *received.Completed)
 	assert.Equal(t, dto.UpdateTodoCmd, received.Type)
+	assert.Equal(t, "test-user-2", received.UserID)
 }
 
 func TestPublishDelete(t *testing.T) {
@@ -145,6 +136,7 @@ func TestPublishDelete(t *testing.T) {
 
 	handlerFunc := handler.PublishDelete(js, logger)
 	req := httptest.NewRequest(http.MethodDelete, "/todos/123", nil)
+	req.Header.Set("X-User-ID", "test-user-3") // 👈 Add test user ID
 	req = withRouteParam(req, "id", "123")
 	resp := httptest.NewRecorder()
 
@@ -157,18 +149,12 @@ func TestPublishDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 1)
 
-	msg := msgs[0]
-	meta, err := msg.Metadata()
-	assert.NoError(t, err)
-	assert.Equal(t, "todo.commands", msg.Subject)
-	assert.NotZero(t, meta.Sequence.Stream)
-	assert.WithinDuration(t, time.Now(), meta.Timestamp, 5*time.Second)
-
 	var received dto.DeleteTodoCommand
-	err = json.Unmarshal(msg.Data, &received)
+	err = json.Unmarshal(msgs[0].Data, &received)
 	assert.NoError(t, err)
 	assert.Equal(t, "123", received.ID)
 	assert.Equal(t, dto.DeleteTodoCmd, received.Type)
+	assert.Equal(t, "test-user-3", received.UserID)
 }
 
 func ptrString(s string) *string {

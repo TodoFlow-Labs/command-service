@@ -16,7 +16,6 @@ import (
 
 func Run() {
 	// Load configuration
-
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to load config")
@@ -26,6 +25,7 @@ func Run() {
 	metrics.Init(cfg.MetricsAddr)
 	logger.Info().Msgf("metrics server listening on %s", cfg.MetricsAddr)
 
+	// Connect to NATS
 	nc, err := nats.Connect(cfg.NATSURL)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect to NATS")
@@ -34,7 +34,6 @@ func Run() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to init JetStream")
 	}
-
 	_, err = js.AddStream(&nats.StreamConfig{
 		Name:     "todo_commands",
 		Subjects: []string{"todo.commands"},
@@ -43,6 +42,7 @@ func Run() {
 		logger.Fatal().Err(err).Msg("failed to create JetStream stream")
 	}
 
+	// Set up HTTP server and routes
 	r := chi.NewRouter()
 	r.Post("/todos", handler.PublishCreate(js, logger))
 	r.Put("/todos/{id}", handler.PublishUpdate(js, logger))
