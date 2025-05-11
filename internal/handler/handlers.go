@@ -17,7 +17,7 @@ func getUserID(r *http.Request) string {
 	return r.Header.Get("X-User-ID")
 }
 
-func PublishCreate(js nats.JetStreamContext, logger *logging.Logger) http.HandlerFunc {
+func PublishCreate(js nats.JetStreamContext, logger logging.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.Debug().Msg("handling create todo command")
 
@@ -46,7 +46,7 @@ func PublishCreate(js nats.JetStreamContext, logger *logging.Logger) http.Handle
 	}
 }
 
-func PublishUpdate(js nats.JetStreamContext, logger *logging.Logger) http.HandlerFunc {
+func PublishUpdate(js nats.JetStreamContext, logger logging.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.Debug().Msg("handling update todo command")
 		id := chi.URLParam(r, "id")
@@ -74,7 +74,7 @@ func PublishUpdate(js nats.JetStreamContext, logger *logging.Logger) http.Handle
 	}
 }
 
-func PublishDelete(js nats.JetStreamContext, logger *logging.Logger) http.HandlerFunc {
+func PublishDelete(js nats.JetStreamContext, logger logging.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.Debug().Msg("handling delete todo command")
 		id := chi.URLParam(r, "id")

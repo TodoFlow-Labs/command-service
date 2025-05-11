@@ -1,10 +1,12 @@
 package app
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 
@@ -20,8 +22,9 @@ func Run() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to load config")
 	}
+
 	// Initialize logger and metrics
-	logger := logging.New(cfg.LogLevel)
+	logger := logging.New(cfg.LogLevel).With().Str("service", "command-service").Logger()
 	metrics.Init(cfg.MetricsAddr)
 	logger.Info().Msgf("metrics server listening on %s", cfg.MetricsAddr)
 
@@ -44,10 +47,47 @@ func Run() {
 
 	// Set up HTTP server and routes
 	r := chi.NewRouter()
+
+	// Middleware
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(jsonContentType)
+
+	// Routes
 	r.Post("/todos", handler.PublishCreate(js, logger))
 	r.Put("/todos/{id}", handler.PublishUpdate(js, logger))
 	r.Delete("/todos/{id}", handler.PublishDelete(js, logger))
 
+	// Error handlers
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		writeError(w, http.StatusNotFound, "route not found")
+		logger.Warn().Str("path", r.URL.Path).Msg("404 not found")
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		logger.Warn().Str("path", r.URL.Path).Msg("405 method not allowed")
+	})
+
 	logger.Info().Msgf("command-service listening on %s", cfg.HTTPAddr)
-	http.ListenAndServe(cfg.HTTPAddr, r)
+	if err := http.ListenAndServe(cfg.HTTPAddr, r); err != nil {
+		logger.Fatal().Err(err).Msg("HTTP server failed")
+	}
+}
+
+// Forces JSON Content-Type for all responses
+func jsonContentType(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Writes a structured JSON error
+func writeError(w http.ResponseWriter, status int, msg string) {
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"error": msg,
+	})
 }

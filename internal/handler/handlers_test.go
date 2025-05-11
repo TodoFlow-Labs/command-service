@@ -61,7 +61,7 @@ func TestPublishCreate(t *testing.T) {
 	srv, js, nc := setupEmbeddedNATSServer(t)
 	defer srv.Shutdown()
 	defer nc.Close()
-	logger := logging.New("debug")
+	logger := logging.New("debug").With().Str("service", "command-service").Logger()
 
 	handlerFunc := handler.PublishCreate(js, logger)
 	cmd := dto.CreateTodoCommand{
@@ -95,8 +95,7 @@ func TestPublishUpdate(t *testing.T) {
 	srv, js, nc := setupEmbeddedNATSServer(t)
 	defer srv.Shutdown()
 	defer nc.Close()
-	logger := logging.New("debug")
-
+	logger := logging.New("debug").With().Str("service", "command-service").Logger()
 	handlerFunc := handler.PublishUpdate(js, logger)
 	cmd := dto.UpdateTodoCommand{
 		Title:     ptrString("Updated Title"),
@@ -132,7 +131,7 @@ func TestPublishDelete(t *testing.T) {
 	srv, js, nc := setupEmbeddedNATSServer(t)
 	defer srv.Shutdown()
 	defer nc.Close()
-	logger := logging.New("debug")
+	logger := logging.New("debug").With().Str("service", "command-service").Logger()
 
 	handlerFunc := handler.PublishDelete(js, logger)
 	req := httptest.NewRequest(http.MethodDelete, "/todos/123", nil)
