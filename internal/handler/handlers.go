@@ -13,8 +13,10 @@ import (
 )
 
 func getUserID(r *http.Request) string {
-	// Replace with actual auth logic (JWT/session/header)
-	return r.Header.Get("X-User-ID")
+	if uid, ok := r.Context().Value("user_id").(string); ok {
+		return uid
+	}
+	return ""
 }
 
 func PublishCreate(js nats.JetStreamContext, logger logging.Logger) http.HandlerFunc {

@@ -6,6 +6,7 @@ toolchain go1.23.8
 
 require (
 	github.com/go-chi/chi/v5 v5.2.1
+	github.com/joho/godotenv v1.5.1
 	github.com/nats-io/nats-server/v2 v2.11.3
 	github.com/nats-io/nats.go v1.42.0
 	github.com/rs/zerolog v1.34.0

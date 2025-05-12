@@ -71,7 +71,8 @@ func TestPublishCreate(t *testing.T) {
 	body, _ := json.Marshal(cmd)
 	req := httptest.NewRequest(http.MethodPost, "/todos", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-User-ID", "test-user-1") // 👈 Add test user ID
+	ctx := context.WithValue(req.Context(), "user_id", "test-user-1")
+	req = req.WithContext(ctx)
 	resp := httptest.NewRecorder()
 
 	handlerFunc(resp, req)
@@ -104,8 +105,9 @@ func TestPublishUpdate(t *testing.T) {
 	body, _ := json.Marshal(cmd)
 	req := httptest.NewRequest(http.MethodPut, "/todos/123", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-User-ID", "test-user-2") // 👈 Add test user ID
 	req = withRouteParam(req, "id", "123")
+	ctx := context.WithValue(req.Context(), "user_id", "test-user-2")
+	req = req.WithContext(ctx)
 	resp := httptest.NewRecorder()
 
 	handlerFunc(resp, req)
@@ -135,8 +137,9 @@ func TestPublishDelete(t *testing.T) {
 
 	handlerFunc := handler.PublishDelete(js, logger)
 	req := httptest.NewRequest(http.MethodDelete, "/todos/123", nil)
-	req.Header.Set("X-User-ID", "test-user-3") // 👈 Add test user ID
 	req = withRouteParam(req, "id", "123")
+	ctx := context.WithValue(req.Context(), "user_id", "test-user-3")
+	req = req.WithContext(ctx)
 	resp := httptest.NewRecorder()
 
 	handlerFunc(resp, req)
