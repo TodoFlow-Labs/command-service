@@ -6,8 +6,6 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -54,12 +52,6 @@ func Load() (*Config, error) {
 	}
 	if cfg.HTTPAddr == "" {
 		return nil, fmt.Errorf("http-addr must be set")
-	}
-
-	// get environment from .env
-	err := godotenv.Load()
-	if err != nil {
-		return nil, fmt.Errorf("error loading .env file")
 	}
 
 	return &cfg, nil
