@@ -2,57 +2,41 @@ package config
 
 import (
 	"fmt"
-	"strings"
-
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	"os"
 )
 
 type Config struct {
-	HTTPAddr    string `mapstructure:"http-addr"`
-	NATSURL     string `mapstructure:"nats-url"`
-	LogLevel    string `mapstructure:"log-level"`
-	MetricsAddr string `mapstructure:"metrics-addr"`
+	NATSURL     string
+	LogLevel    string
+	MetricsAddr string
+	HTTPAddr    string
 }
 
 func Load() (*Config, error) {
-	// Optional flag for config file
-	pflag.String("config", "config.yaml", "Path to config file")
-
-	// CLI flags (override everything)
-	pflag.String("nats-url", "", "NATS server URL")
-	pflag.String("log-level", "", "Log level")
-	pflag.String("metrics-addr", "", "Metrics listen address")
-	pflag.String("http-addr", "", "HTTP listen address")
-	pflag.Parse()
-
-	// Bind flags
-	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		return nil, err
+	cfg := &Config{
+		NATSURL:     os.Getenv("NATS_URL"),
+		LogLevel:    os.Getenv("LOG_LEVEL"),
+		MetricsAddr: os.Getenv("METRICS_ADDR"),
+		HTTPAddr:    os.Getenv("HTTP_ADDR"),
 	}
 
-	// Support ENV like NATS_URL
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	viper.AutomaticEnv()
-
-	// Load from YAML file (if it exists)
-	viper.SetConfigFile(viper.GetString("config"))
-	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("No config file found, continuing with flags/env: %v\n", err)
-	}
-
-	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, err
-	}
-
-	// Validate
+	// Validation
+	var missing []string
 	if cfg.NATSURL == "" {
-		return nil, fmt.Errorf("nats-url must be set")
+		missing = append(missing, "NATS_URL")
+	}
+	if cfg.LogLevel == "" {
+		missing = append(missing, "LOG_LEVEL")
+	}
+	if cfg.MetricsAddr == "" {
+		missing = append(missing, "METRICS_ADDR")
 	}
 	if cfg.HTTPAddr == "" {
-		return nil, fmt.Errorf("http-addr must be set")
+		missing = append(missing, "HTTP_ADDR")
+	}
+	if len(missing) > 0 {
+		return nil, fmt.Errorf("missing required env vars: %v", missing)
 	}
 
-	return &cfg, nil
+	return cfg, nil
 }

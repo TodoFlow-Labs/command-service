@@ -18,4 +18,4 @@ WORKDIR /app
 COPY --from=builder /app/main .
 
 
-CMD ["./main", "--config", "/app/config.yaml"]
+CMD ["./main"]
