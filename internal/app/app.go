@@ -97,28 +97,14 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if os.Getenv("ENV") != "production" {
-			ctx := context.WithValue(r.Context(), "user_id", "test-user")
-			next.ServeHTTP(w, r.WithContext(ctx))
-			return
-		}
-
-		payload := r.Header.Get("x-jwt-payload")
-		if payload == "" {
-			http.Error(w, "Missing JWT payload", http.StatusUnauthorized)
-			return
-		}
-
-		var claims map[string]any
-		if err := json.Unmarshal([]byte(payload), &claims); err != nil {
-			http.Error(w, "Invalid JWT payload", http.StatusUnauthorized)
-			return
-		}
-
-		userID, ok := claims["sub"].(string)
-		if !ok || userID == "" {
-			http.Error(w, "Missing sub in JWT", http.StatusUnauthorized)
-			return
+		userID := r.Header.Get("X-User-ID")
+		if userID == "" {
+			if os.Getenv("ENV") != "production" {
+				userID = "test-user"
+			} else {
+				writeError(w, http.StatusUnauthorized, "Missing X-User-ID header")
+				return
+			}
 		}
 
 		ctx := context.WithValue(r.Context(), "user_id", userID)
