@@ -10,6 +10,8 @@ on:
       - '**/*.sum'
   push:
     branches: [main]
+    tags:
+      - 'v*.*.*'
     paths:
       - '**/*.go'
       - 'Dockerfile'

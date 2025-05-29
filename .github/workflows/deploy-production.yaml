@@ -1,9 +1,11 @@
 name: Deploy to Production
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Continuous Integration"]
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+      - 'v*.*.*'
+    types: [completed]
 
 permissions:
   actions: read
@@ -12,12 +14,11 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-
-    environment:
-      name: production
-
+    if: github.event.workflow_run.conclusion == 'success'
     permissions:
       packages: read
+    environment:
+      name: production
 
     steps:
       - name: Checkout code
@@ -25,9 +26,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch all tags
+        run: git fetch --tags
+
       - name: Extract version from tag
         id: version
         run: |
+          # The tag from the triggering workflow run ref (refs/tags/...)
           version=${GITHUB_REF#refs/tags/}
           echo "version=$version" >> $GITHUB_OUTPUT
           echo "Using tag: $version"
