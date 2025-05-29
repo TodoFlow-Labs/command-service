@@ -61,13 +61,25 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Tag and push staging image
+      - name: Install skopeo
         run: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/command-service:main-$(git rev-parse --short HEAD)
-          docker tag ${{ secrets.DOCKER_USERNAME }}/command-service:main-$(git rev-parse --short HEAD) ${{ secrets.DOCKER_USERNAME }}/command-service:${{ steps.version.outputs.version }}
-          docker tag ${{ secrets.DOCKER_USERNAME }}/command-service:main-$(git rev-parse --short HEAD) ${{ secrets.DOCKER_USERNAME }}/command-service:staging
-          docker push ${{ secrets.DOCKER_USERNAME }}/command-service:${{ steps.version.outputs.version }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/command-service:staging
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      - name: Retag and push multi-arch images with skopeo
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          SRC_IMAGE="${DOCKER_USERNAME}/command-service:main-$(git rev-parse --short HEAD)"
+          VERSION_TAG="${{ steps.version.outputs.version }}"
+          STAGING_TAG="staging"
+
+          mkdir -p ~/.docker
+          echo "{\"auths\":{\"docker.io\":{\"username\":\"$DOCKER_USERNAME\",\"password\":\"$DOCKER_PASSWORD\"}}}" > ~/.docker/config.json
+
+          skopeo copy --all docker://docker.io/$SRC_IMAGE docker://docker.io/${DOCKER_USERNAME}/command-service:$VERSION_TAG
+          skopeo copy --all docker://docker.io/$SRC_IMAGE docker://docker.io/${DOCKER_USERNAME}/command-service:$STAGING_TAG
 
       - name: Clone infrastructure repo with GITHUB_TOKEN
         env:

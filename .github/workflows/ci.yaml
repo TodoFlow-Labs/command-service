@@ -3,8 +3,18 @@ name: Continuous Integration
 on:
   pull_request:
     branches: [main]
+    paths:
+      - '**/*.go'
+      - 'Dockerfile'
+      - '**/*.mod'
+      - '**/*.sum'
   push:
     branches: [main]
+    paths:
+      - '**/*.go'
+      - 'Dockerfile'
+      - '**/*.mod'
+      - '**/*.sum'
 
 permissions:
   security-events: write
