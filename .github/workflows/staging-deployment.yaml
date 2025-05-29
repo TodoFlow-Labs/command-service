@@ -81,9 +81,9 @@ jobs:
 
       - name: Clone infrastructure repo with GITHUB_TOKEN
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAT: ${{ secrets.INFRA_REPO_TOKEN }}
         run: |
-          git clone git@github.com:TodoFlow-Labs/command-service.git infra
+          git clone https://x-access-token:$PAT@github.com/TodoFlow-Labs/command-service.git infra
           cd infra
 
           # Update image tag in Helm values file
