@@ -77,11 +77,11 @@ jobs:
           cd infra
 
           # Update image tag in Helm values file
-          yq e ".commandService.image.tag = \"${{ steps.version.outputs.version }}\"" -i values-stage.yaml
+          yq e ".commandService.image.tag = \"${{ steps.version.outputs.version }}\"" -i k8s/helm/todoflow/values-stage.yaml
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add values-stage.yaml
+          git add k8s/helm/todoflow/values-stage.yaml
           git commit -m "Update commandService image tag to ${{ steps.version.outputs.version }}"
           git push origin main
