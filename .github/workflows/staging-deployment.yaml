@@ -5,9 +5,10 @@ on:
     workflows: ["Continuous Integration"]
     branches: [main]
     types: [completed]
+
 permissions:
   actions: read
-  contents: read
+  contents: write
 
 jobs:
   deploy-staging:
@@ -31,19 +32,15 @@ jobs:
       - name: Generate staging version
         id: version
         run: |
-          # Get the latest staging tag
           latest_staging=$(git tag --list 'v*-staging' --sort=-v:refname | head -n 1)
 
           if [[ -z "$latest_staging" ]]; then
-            # No staging tags exist, start with v0.1.0-staging
             new_version="v0.1.0-staging"
           else
-            # Extract version parts and increment patch
             version_part=$(echo $latest_staging | sed 's/-staging$//')
             major=$(echo $version_part | cut -d. -f1 | sed 's/v//')
             minor=$(echo $version_part | cut -d. -f2)
             patch=$(echo $version_part | cut -d. -f3)
-
             new_patch=$((patch + 1))
             new_version="v${major}.${minor}.${new_patch}-staging"
           fi
@@ -66,28 +63,21 @@ jobs:
 
       - name: Tag and push staging image
         run: |
-          # Pull the latest main image
           docker pull ${{ secrets.DOCKER_USERNAME }}/command-service:main-$(git rev-parse --short HEAD)
-
-          # Tag it with staging version
-          docker tag ${{ secrets.DOCKER_USERNAME }}/command-service:main-$(git rev-parse --short HEAD) \
-                     ${{ secrets.DOCKER_USERNAME }}/command-service:${{ steps.version.outputs.version }}
-
-          docker tag ${{ secrets.DOCKER_USERNAME }}/command-service:main-$(git rev-parse --short HEAD) \
-                     ${{ secrets.DOCKER_USERNAME }}/command-service:staging
-
-          # Push staging tags
+          docker tag ${{ secrets.DOCKER_USERNAME }}/command-service:main-$(git rev-parse --short HEAD) ${{ secrets.DOCKER_USERNAME }}/command-service:${{ steps.version.outputs.version }}
+          docker tag ${{ secrets.DOCKER_USERNAME }}/command-service:main-$(git rev-parse --short HEAD) ${{ secrets.DOCKER_USERNAME }}/command-service:staging
           docker push ${{ secrets.DOCKER_USERNAME }}/command-service:${{ steps.version.outputs.version }}
           docker push ${{ secrets.DOCKER_USERNAME }}/command-service:staging
-      - name: Deploy to staging environment
-        run: |
-          echo "Deploying ${{ steps.version.outputs.version }} to staging..."
 
-          git clone git@github.com:TodoFlow-Labs/infrastructure.git infra
+      - name: Clone infrastructure repo with GITHUB_TOKEN
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone https://x-access-token:${GITHUB_TOKEN}@github.com/TodoFlow-Labs/infrastructure.git infra
           cd infra
 
-          # Update the tag in values-stage.yaml using yq
-          yq eval ".commandService.image.tag = \"${{ steps.version.outputs.version }}\"" -i values-stage.yaml
+          # Update image tag in Helm values file
+          yq e ".commandService.image.tag = \"${{ steps.version.outputs.version }}\"" -i values-stage.yaml
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
