@@ -1,57 +1,36 @@
-name: Deploy to Staging
+name: Deploy to Production
 
 on:
-  workflow_run:
-    workflows: ["Continuous Integration"]
-    branches: [main]
-    types: [completed]
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
   actions: read
 
 jobs:
-  deploy-staging:
-    name: Deploy to Staging
+  deploy-production:
+    name: Deploy to Production
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
+
+    environment:
+      name: production
+
     permissions:
       packages: read
-    environment:
-      name: staging
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Fetch all tags
-        run: git fetch --tags
-
-      - name: Generate staging version
+      - name: Extract version from tag
         id: version
         run: |
-          latest_staging=$(git tag --list 'v*-staging' --sort=-v:refname | head -n 1)
-
-          if [[ -z "$latest_staging" ]]; then
-            new_version="v0.1.0-staging"
-          else
-            version_part=$(echo $latest_staging | sed 's/-staging$//')
-            major=$(echo $version_part | cut -d. -f1 | sed 's/v//')
-            minor=$(echo $version_part | cut -d. -f2)
-            patch=$(echo $version_part | cut -d. -f3)
-            new_patch=$((patch + 1))
-            new_version="v${major}.${minor}.${new_patch}-staging"
-          fi
-
-          echo "version=$new_version" >> $GITHUB_OUTPUT
-          echo "Generated staging version: $new_version"
-
-      - name: Create and push staging tag
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag ${{ steps.version.outputs.version }}
-          git push origin ${{ steps.version.outputs.version }}
+          version=${GITHUB_REF#refs/tags/}
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "Using tag: $version"
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -77,19 +56,19 @@ jobs:
             --dest-creds $DOCKER_USERNAME:$DOCKER_PASSWORD \
             docker://docker.io/$SRC_IMAGE docker://docker.io/${DOCKER_USERNAME}/command-service:$VERSION_TAG
 
-      - name: Clone infrastructure repo with GITHUB_TOKEN
+      - name: Clone infrastructure repo
         env:
           PAT: ${{ secrets.INFRA_REPO_TOKEN }}
         run: |
           git clone https://x-access-token:$PAT@github.com/TodoFlow-Labs/infrastructure.git infra
           cd infra
 
-          # Update image tag in Helm values file
-          yq e ".commandService.image.tag = \"${{ steps.version.outputs.version }}\"" -i k8s/helm/todoflow/values-stage.yaml
+          # Update production tag in Helm values
+          yq e ".commandService.image.tag = \"${{ steps.version.outputs.version }}\"" -i k8s/helm/todoflow/values.yaml
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add k8s/helm/todoflow/values-stage.yaml
+          git add k8s/helm/todoflow/values.yaml
           git commit -m "Update commandService image tag to ${{ steps.version.outputs.version }}"
           git push origin main
