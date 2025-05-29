@@ -18,6 +18,8 @@ import (
 	"github.com/todoflow-labs/shared-dtos/metrics"
 )
 
+const USER_ID = "user_id"
+
 func Run() {
 	// Load configuration
 	cfg, err := config.Load()
@@ -106,8 +108,7 @@ func authMiddleware(next http.Handler) http.Handler {
 				return
 			}
 		}
-
-		ctx := context.WithValue(r.Context(), "user_id", userID)
+		ctx := context.WithValue(r.Context(), USER_ID, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

@@ -19,6 +19,8 @@ import (
 	"github.com/todoflow-labs/shared-dtos/logging"
 )
 
+const USER_ID = "user_id"
+
 func setupEmbeddedNATSServer(t *testing.T) (*server.Server, nats.JetStreamContext, *nats.Conn) {
 	opts := &server.Options{
 		JetStream: true,
@@ -106,7 +108,7 @@ func TestPublishUpdate(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPut, "/todos/123", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = withRouteParam(req, "id", "123")
-	ctx := context.WithValue(req.Context(), "user_id", "test-user-2")
+	ctx := context.WithValue(req.Context(), USER_ID, "test-user-2")
 	req = req.WithContext(ctx)
 	resp := httptest.NewRecorder()
 
@@ -138,7 +140,7 @@ func TestPublishDelete(t *testing.T) {
 	handlerFunc := handler.PublishDelete(js, logger)
 	req := httptest.NewRequest(http.MethodDelete, "/todos/123", nil)
 	req = withRouteParam(req, "id", "123")
-	ctx := context.WithValue(req.Context(), "user_id", "test-user-3")
+	ctx := context.WithValue(req.Context(), USER_ID, "test-user-3")
 	req = req.WithContext(ctx)
 	resp := httptest.NewRecorder()
 
