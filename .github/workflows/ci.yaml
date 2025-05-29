@@ -5,6 +5,10 @@ on:
     branches: [main]
   push:
     branches: [main]
+permissions:
+  security-events: write
+  actions: read
+  contents: read
 
 env:
   GO_VERSION: "1.24"
