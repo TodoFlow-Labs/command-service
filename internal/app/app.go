@@ -14,11 +14,10 @@ import (
 
 	"github.com/todoflow-labs/command-service/internal/config"
 	"github.com/todoflow-labs/command-service/internal/handler"
+	"github.com/todoflow-labs/command-service/internal/types"
 	"github.com/todoflow-labs/shared-dtos/logging"
 	"github.com/todoflow-labs/shared-dtos/metrics"
 )
-
-const USER_ID = "user_id"
 
 func Run() {
 	// Load configuration
@@ -108,7 +107,7 @@ func authMiddleware(next http.Handler) http.Handler {
 				return
 			}
 		}
-		ctx := context.WithValue(r.Context(), USER_ID, userID)
+		ctx := context.WithValue(r.Context(), types.USER_ID, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

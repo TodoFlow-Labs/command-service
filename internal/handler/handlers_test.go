@@ -15,11 +15,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/todoflow-labs/command-service/internal/handler"
+	"github.com/todoflow-labs/command-service/internal/types"
 	"github.com/todoflow-labs/shared-dtos/dto"
 	"github.com/todoflow-labs/shared-dtos/logging"
 )
-
-const USER_ID = "user_id"
 
 func setupEmbeddedNATSServer(t *testing.T) (*server.Server, nats.JetStreamContext, *nats.Conn) {
 	opts := &server.Options{
@@ -73,7 +72,7 @@ func TestPublishCreate(t *testing.T) {
 	body, _ := json.Marshal(cmd)
 	req := httptest.NewRequest(http.MethodPost, "/todos", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), "user_id", "test-user-1")
+	ctx := context.WithValue(req.Context(), types.USER_ID, "test-user-1")
 	req = req.WithContext(ctx)
 	resp := httptest.NewRecorder()
 
@@ -108,7 +107,7 @@ func TestPublishUpdate(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPut, "/todos/123", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = withRouteParam(req, "id", "123")
-	ctx := context.WithValue(req.Context(), USER_ID, "test-user-2")
+	ctx := context.WithValue(req.Context(), types.USER_ID, "test-user-2")
 	req = req.WithContext(ctx)
 	resp := httptest.NewRecorder()
 
@@ -140,7 +139,7 @@ func TestPublishDelete(t *testing.T) {
 	handlerFunc := handler.PublishDelete(js, logger)
 	req := httptest.NewRequest(http.MethodDelete, "/todos/123", nil)
 	req = withRouteParam(req, "id", "123")
-	ctx := context.WithValue(req.Context(), USER_ID, "test-user-3")
+	ctx := context.WithValue(req.Context(), types.USER_ID, "test-user-3")
 	req = req.WithContext(ctx)
 	resp := httptest.NewRecorder()
 

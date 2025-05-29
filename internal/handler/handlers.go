@@ -7,13 +7,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/nats-io/nats.go"
 
+	"github.com/todoflow-labs/command-service/internal/types"
 	"github.com/todoflow-labs/shared-dtos/dto"
 	"github.com/todoflow-labs/shared-dtos/logging"
 	"github.com/todoflow-labs/shared-dtos/metrics"
 )
 
 func getUserID(r *http.Request) string {
-	if uid, ok := r.Context().Value("user_id").(string); ok {
+	if uid, ok := r.Context().Value(types.USER_ID).(string); ok {
 		return uid
 	}
 	return ""
