@@ -5,6 +5,9 @@ on:
     workflows: ["Continuous Integration"]
     branches: [main]
     types: [completed]
+permissions:
+  actions: read
+  contents: read
 
 jobs:
   deploy-staging:
