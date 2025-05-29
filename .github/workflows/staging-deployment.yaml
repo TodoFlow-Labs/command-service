@@ -73,13 +73,11 @@ jobs:
         run: |
           SRC_IMAGE="${DOCKER_USERNAME}/command-service:main-$(git rev-parse --short HEAD)"
           VERSION_TAG="${{ steps.version.outputs.version }}"
-          STAGING_TAG="staging"
 
-          mkdir -p ~/.docker
-          echo "{\"auths\":{\"docker.io\":{\"username\":\"$DOCKER_USERNAME\",\"password\":\"$DOCKER_PASSWORD\"}}}" > ~/.docker/config.json
-
-          skopeo copy --all docker://docker.io/$SRC_IMAGE docker://docker.io/${DOCKER_USERNAME}/command-service:$VERSION_TAG
-          skopeo copy --all docker://docker.io/$SRC_IMAGE docker://docker.io/${DOCKER_USERNAME}/command-service:$STAGING_TAG
+          skopeo copy --all \
+            --src-creds $DOCKER_USERNAME:$DOCKER_PASSWORD \
+            --dest-creds $DOCKER_USERNAME:$DOCKER_PASSWORD \
+            docker://docker.io/$SRC_IMAGE docker://docker.io/${DOCKER_USERNAME}/command-service:$VERSION_TAG
 
       - name: Clone infrastructure repo with GITHUB_TOKEN
         env:
